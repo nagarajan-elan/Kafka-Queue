@@ -1,0 +1,37 @@
+repos:
+  # autoflake: Removes unused imports and variables from Python code.
+  - repo: https://github.com/PyCQA/autoflake
+    rev: v2.1.1
+    hooks:
+      - id: autoflake
+        args:
+          - --ignore-init-module-imports
+          - --remove-all-unused-imports
+          - --in-place
+        # Python files within specific directories
+        files: ^(.*\.py)$
+
+  # isort: Sorts Python imports alphabetically within each section.
+  - repo: https://github.com/PyCQA/isort
+    rev: 5.12.0
+    hooks:
+      - id: isort
+        # Python files within specific directories
+        files: ^(.*\.py)$
+
+  # ruff: Lints and formats Python code
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.1.8
+    hooks:
+      - id: ruff
+        # Python files within specific directories
+        files: ^(.*\.py)$
+      - id: ruff-format
+        # Python files within specific directories
+        files: ^(.*\.py)$
+
+  # Commitizen: Standardizes commit messages.
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v3.18.4
+    hooks:
+      - id: commitizen

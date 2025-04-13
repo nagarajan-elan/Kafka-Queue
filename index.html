@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Image Upload</title>
+</head>
+
+<body>
+    <h1>Upload Image</h1>
+
+    <form id="uploadForm">
+        <input type="file" name="file" id="fileInput" accept="image/*" multiple required />
+        <input type="text" name="task_id" placeholder="Batch ID" required />
+        <button type="submit">Upload</button>
+    </form>
+
+    <p id="result"></p>
+
+    <script>
+        const form = document.getElementById('uploadForm');
+        const result = document.getElementById('result');
+
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const fileInput = document.getElementById('fileInput');
+
+            const response = await fetch('http://127.0.0.1:8000/task', {
+                method: 'POST',
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    action: "COMPRESS_IMAGE",
+                    total_files: fileInput.files.length
+                })
+            });
+
+            const data = await response.json();
+            var taskId = 0
+            if (response.ok) {
+                taskId = data.task_id
+                console.log(">> " + taskId)
+            } else {
+                throw Error("Task creation api failed")
+            }
+
+            for (let i = 0; i < fileInput.files.length; i++) {
+                const formData = new FormData();
+                formData.append('file', fileInput.files[i]);
+                formData.append('action', "test-topic");
+                formData.append('task_id', taskId);
+                formData.append('order', i);
+                formData.append('width', 1000);
+                formData.append('quality', 80);
+
+                try {
+                    const response = await fetch('http://localhost:8000/upload-file', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const data = await response.json();
+                    result.textContent = `Upload successful: ${JSON.stringify(data)}`;
+                } catch (err) {
+                    result.textContent = `Error: ${err.message}`;
+                }
+            }
+
+        });
+    </script>
+</body>
+
+</html>
