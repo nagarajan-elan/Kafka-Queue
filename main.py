@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
 from constants import Status
-from database.models import File as UploadedFile
+from database.models import File as UploadedFile, TaskResult
 from database.models import Task
 from database.utils import create_record, fetch_task_results, get_record_by_id
 from kafka_utils import merge_images_to_pdf_runner, producer
@@ -71,25 +71,31 @@ def upload_file(
 @app.get("/task/{task_id}")
 def task_result(task_id: str):
     task = get_record_by_id(task_id, Task)
-
     if not task:
         return {"message": "Invalid task id"}
+    
     if task.status == Status.COMPLETED.value:
         results = fetch_task_results(task_id)
-        pdf_bytes = results[0].data
-        pdf_stream = BytesIO(pdf_bytes)
-
-        # return StreamingResponse(image_stream, media_type="image/jpeg")
-        return StreamingResponse(
-            pdf_stream,
-            media_type="application/pdf",
-            headers={
-                "Content-Disposition": "inline; filename=merged.pdf"  # or 'attachment;' to force download
-            },
-        )
+        result_ids = [result.id for result in results]
+        return {"status": Status.COMPLETED.value,"results":result_ids}
+    
     else:
         return {"status": task.status}
 
+@app.get("/task-result/{task_result_id}")
+def download_result(task_result_id: str):
+    result = get_record_by_id(task_result_id, TaskResult)
+
+    pdf_bytes = result.data
+    pdf_stream = BytesIO(pdf_bytes)
+
+    return StreamingResponse(
+        pdf_stream,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f"attachment; filename=file-{task_result_id}.pdf"
+        },
+    )
 
 @app.on_event("startup")
 def start_consumer_thread():

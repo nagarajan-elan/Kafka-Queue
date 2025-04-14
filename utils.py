@@ -1,5 +1,6 @@
 import io
 import logging
+import time
 
 from PIL import Image
 
@@ -56,6 +57,8 @@ def merge_images_to_pdf(task_id, task_files):
 
     if not images:
         return None
+    
+    time.sleep(5)
 
     output_buffer = io.BytesIO()
     images[0].save(output_buffer, format="PDF", save_all=True, append_images=images[1:])
@@ -73,4 +76,4 @@ def merge_images_to_pdf(task_id, task_files):
     update_task_status(task_id, Status.COMPLETED.value)
 
     if not result:
-        logging.info("Faile to store task result")
+        logging.info("Failed to store task result")

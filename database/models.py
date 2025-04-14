@@ -66,7 +66,7 @@ class TaskResult(Base):
 DATABASE_URL = "postgresql://myuser:mypass@localhost:5432/mydb"
 engine = create_engine(DATABASE_URL)
 
-Base.metadata.drop_all(engine)
+# Base.metadata.drop_all(engine)
 # This will create the table if it doesn't exist
 Base.metadata.create_all(engine)
 

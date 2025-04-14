@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>I♡PDF</title>
+    <style>
+        .box {
+            width: 160px;
+            height: 40px;
+            padding-top: 20px;
+            margin: 10px;
+            display: inline-block;
+            text-align: center;
+            background-color: lightblue;
+            cursor: pointer;
+            text-decoration: none;
+            border-radius: 8%;
+        }
+
+        .status {
+            margin: 30px;
+        }
+
+        .upload-button {
+            margin: 30px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Upload Files</h1>
+
+    <form id="uploadForm">
+        <input type="file" name="file" id="fileInput" accept="image/*" multiple required />
+        <select id="myDropdown">
+            <option value="test-topic">Merge Image to PDF</option>
+            <option value="compress-image">Compress Image</option>
+        </select>
+        <button type="submit" class="upload-button">Upload</button>
+    </form>
+
+    <p id="result" class="status"></p>
+    <p id="downloadLinks"></p>
+
+    <script>
+        const form = document.getElementById('uploadForm');
+        const result = document.getElementById('result');
+
+        const baseUrl = "http://127.0.0.1:8000"
+
+        let pollingInterval = null;
+        function startPolling(url, conditionFn, onSuccess, interval = 5000) {
+            pollingInterval = setInterval(async () => {
+                console.log("Polling:", url);
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) throw new Error("Polling failed: " + response.status);
+
+                    const data = await response.json();
+                    result.textContent = `${data.status}`
+
+                    if (conditionFn(data)) {
+                        console.log("Condition met, stopping polling.");
+                        stopPolling();
+                        onSuccess(data);
+                    }
+                } catch (error) {
+                    console.error("Polling error:", error.message);
+                }
+            }, interval);
+        }
+
+        function stopPolling() {
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+                pollingInterval = null;
+            }
+        }
+
+        function isReadyStatus(data) {
+            return data.status === "COMPLETED";
+        }
+
+        function addDownloadButtons(data) {
+            const container = document.getElementById('downloadLinks');
+
+            data?.results?.forEach((id, index) => {
+                const a = document.createElement('a');
+                const url = `${baseUrl}/task-result/${id}`;
+                a.href = url;
+                a.download = `File-${id}.pdf`;
+                a.className = 'box';
+                a.innerText = `Download File: ${index + 1}`;
+
+                container.appendChild(a);
+            });
+        }
+
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const fileInput = document.getElementById('fileInput');
+            const dropdown = document.getElementById('myDropdown');
+            const selectedValue = dropdown.value;
+
+            const response = await fetch('http://127.0.0.1:8000/task', {
+                method: 'POST',
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    action: selectedValue,
+                    total_files: fileInput.files.length
+                })
+            });
+
+            const data = await response.json();
+            var taskId = ""
+            if (response.ok) {
+                taskId = data.task_id
+                console.log(">> " + taskId)
+            } else {
+                throw Error("Task creation api failed")
+            }
+
+            const pollApiUrl = "http://127.0.0.1:8000/task/" + taskId;
+            startPolling(pollApiUrl, isReadyStatus, addDownloadButtons, 5000);
+
+            for (let i = 0; i < fileInput.files.length; i++) {
+                const formData = new FormData();
+                formData.append('file', fileInput.files[i]);
+                formData.append('action', selectedValue);
+                formData.append('task_id', taskId);
+                formData.append('order', i);
+                formData.append('width', 1000);
+                formData.append('quality', 80);
+
+                try {
+                    const response = await fetch('http://localhost:8000/upload-file', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const data = await response.json();
+                } catch (err) {
+                    alert("File Upload Failed!")
+                }
+            }
+
+        });
+    </script>
+</body>
+
+</html>
