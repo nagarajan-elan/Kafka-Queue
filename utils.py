@@ -57,7 +57,7 @@ def merge_images_to_pdf(task_id, task_files):
 
     if not images:
         return None
-    
+
     time.sleep(5)
 
     output_buffer = io.BytesIO()

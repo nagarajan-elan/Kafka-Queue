@@ -7,11 +7,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
 from constants import Status
-from database.models import File as UploadedFile, TaskResult
-from database.models import Task
+from database.models import File as UploadedFile
+from database.models import Task, TaskResult
 from database.utils import create_record, fetch_task_results, get_record_by_id
 from kafka_utils import merge_images_to_pdf_runner, producer
 from schemas import TaskPayload
+from utils import logging
 
 app = FastAPI()
 
@@ -73,14 +74,15 @@ def task_result(task_id: str):
     task = get_record_by_id(task_id, Task)
     if not task:
         return {"message": "Invalid task id"}
-    
+
     if task.status == Status.COMPLETED.value:
         results = fetch_task_results(task_id)
         result_ids = [result.id for result in results]
-        return {"status": Status.COMPLETED.value,"results":result_ids}
-    
+        return {"status": Status.COMPLETED.value, "results": result_ids}
+
     else:
         return {"status": task.status}
+
 
 @app.get("/task-result/{task_result_id}")
 def download_result(task_result_id: str):
@@ -96,6 +98,7 @@ def download_result(task_result_id: str):
             "Content-Disposition": f"attachment; filename=file-{task_result_id}.pdf"
         },
     )
+
 
 @app.on_event("startup")
 def start_consumer_thread():
